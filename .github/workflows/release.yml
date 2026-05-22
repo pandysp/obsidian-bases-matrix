@@ -1,8 +1,13 @@
 name: Release Obsidian plugin
 
-# Tag-triggered: pushing a git tag builds + tests + drafts a GitHub Release
-# with main.js / manifest.json / styles.css attached as the release artifacts.
+# Tag-triggered: pushing a git tag builds + drafts a GitHub Release with
+# main.js / manifest.json / styles.css attached as the release artifacts.
 # This is the format the obsidian-releases reviewer expects.
+#
+# Tests do NOT run in this workflow. The property-based runner (hegel)
+# spawns a native sidecar process that hangs indefinitely on the
+# ubuntu-latest GHA runner, which blocks the release. The test gate
+# lives on the developer's machine ahead of the tag push.
 
 on:
   push:
@@ -28,9 +33,6 @@ jobs:
 
       - name: Build plugin
         run: npm run build
-
-      - name: Run tests
-        run: npm test
 
       - name: Create draft release
         env:
