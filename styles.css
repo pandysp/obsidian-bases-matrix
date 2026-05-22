@@ -1,0 +1,748 @@
+/* 2×2 Matrix for Bases — styles */
+
+.matrix-view {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.matrix-container {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  /* Reserve room at the bottom so the x-axis title + skipped-notice
+   * aren't clipped by the iOS home indicator (env safe-area inset) or
+   * Obsidian Mobile's bottom nav. env() returns 0 when no inset applies,
+   * so this is a no-op on desktop — but desktop also gets a small extra
+   * 8px so the axis title never feels visually pinned to the very bottom
+   * of the panel. */
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  /* Container query target: the tray's orientation (side vs bottom) keys
+   * off the container's actual shape, not the viewport. So a narrow split
+   * pane on a wide desktop gets the bottom drawer, just like portrait phone.
+   * Use `size` (not `inline-size`) so @container can match aspect-ratio. */
+  container-type: size;
+  container-name: matrix-container;
+}
+
+/* squarePlot: SVG is constrained to a 1:1 aspect ratio and centered in
+ * the container. Useful for radar-style plots where rings need to render
+ * as true circles (rx === ry). */
+.matrix-container--square {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.matrix-container--square .matrix-svg {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.matrix-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+  font-family: var(--font-interface);
+  /* Block iOS / Obsidian Mobile edge-swipe gestures across the ENTIRE SVG,
+   * not just dots. Even with touch-action:none on the dot itself, Obsidian's
+   * JS-level swipe handlers on the workspace can still latch the gesture
+   * before pointerdown fires on our element. Blocking at the SVG root is the
+   * strongest scope and the chart fills the pane anyway. */
+  touch-action: none;
+}
+
+/* ---- Axes ---- */
+
+.matrix-axis-line {
+  /* Frame fill gives the plot a "card on column" depth: --background-primary
+   * sits as a tinted surface inside the view's outer background, the way a
+   * base-board card sits on its column. */
+  stroke: var(--background-modifier-border-hover);
+  stroke-width: 1;
+  fill: var(--background-primary);
+}
+
+.matrix-axis-label {
+  fill: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.matrix-axis-label:hover {
+  fill: var(--text-normal);
+}
+
+.matrix-tick {
+  stroke: var(--background-modifier-border-hover);
+  stroke-width: 1;
+}
+
+.matrix-tick-label {
+  fill: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Quadrant overlay ---- */
+
+.matrix-quadrant-divider {
+  /* Match the outer frame stroke — quadrant cross reads as a continuation
+   * of the axes, not a softer "divider". Same rule applies whether
+   * centerAxes is on or off. */
+  stroke: var(--background-modifier-border-hover);
+  stroke-width: 1;
+}
+
+.matrix-quadrant-label {
+  fill: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.matrix-quadrant-label:hover {
+  fill: var(--text-muted);
+}
+
+/* ---- Ring overlay (tech-radar style) ---- */
+
+.matrix-ring {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 1.25;
+  opacity: 0.55;
+}
+
+.matrix-ring-label {
+  fill: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.matrix-ring-label:hover {
+  fill: var(--text-muted);
+}
+
+/* ---- Points ---- */
+
+/* One-shot reveal on first render — staggered so points appear in a soft
+ * cascade rather than popping in all at once. Stagger is set per-point via
+ * an inline --enter-delay style; `both` fill keeps opacity at 0 until the
+ * delay elapses, otherwise points would flash visible while waiting. */
+@keyframes matrix-point-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.matrix-point-group--entering {
+  animation: matrix-point-enter 0.3s ease var(--enter-delay, 0ms) both;
+}
+
+.matrix-point {
+  cursor: grab;
+  /* transform-box/origin so the scale-lift on drag anchors at the dot's
+   * center. touch-action gating is handled by the SVG root — per the CSS
+   * touch-action spec, the most-restrictive ancestor wins. */
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease,
+              transform 0.15s ease, filter 0.15s ease;
+  /* Subtle hairline matching the chart background separates touching dots
+   * without adding visual weight — base-board's "borders, not shadows". */
+  stroke: var(--background-primary);
+  stroke-width: 1.5;
+}
+
+/* Hover state is driven by the parent group via :has() so hovering EITHER
+ * the circle or the label highlights the whole point as one visual unit.
+ * Plain :hover on <g> is unreliable with pointer-events: bounding-box on
+ * the label child — :has(:hover) is explicit and works both directions. */
+.matrix-point-group:has(:hover) .matrix-point {
+  stroke: var(--interactive-accent);
+  stroke-width: 2.5;
+}
+
+.matrix-point--dragging {
+  cursor: grabbing;
+  stroke: var(--interactive-accent);
+  stroke-width: 3.5;
+  /* Visual "lift" on drag activation: dot scales up + soft shadow. Makes the
+   * "drag mode is now active" affordance unmistakable, which matters most on
+   * touch where there's no haptic feedback to confirm pickup. */
+  transform: scale(1.15);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+}
+
+/* ---- Point labels (always-on) ---- */
+
+/* Chip background behind each label — suitcase-tag aesthetic. Tinted by
+ * the dot's --dot-color so each label visually ties to its point. Solid
+ * fill means overlapping labels no longer interleave: combined with the
+ * right-wins paint order, the winner's chip cleanly covers the loser. */
+.matrix-point-label-bg {
+  /* color-mix needs --dot-color on a parent (.matrix-point-group); the
+   * inline style.setProperty in the renderer wires it. Fallback to a
+   * neutral chip if --dot-color is missing. */
+  fill: color-mix(
+    in oklch,
+    var(--dot-color, var(--background-secondary)) 18%,
+    var(--background-primary)
+  );
+  stroke: color-mix(
+    in oklch,
+    var(--dot-color, var(--background-modifier-border)) 50%,
+    transparent
+  );
+  stroke-width: 1;
+  /* Soft "shade" — subtle lift so the chip reads as a label, not just a
+   * filled rect. Same dark drop shadow as the tooltip but proportionally
+   * smaller. */
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+  transition: fill 0.15s ease, stroke 0.15s ease;
+}
+
+/* Slight emphasis when the parent group is hovered — chip border picks up
+ * the dot's color more strongly so the affordance reads "this label is the
+ * one I'm pointing at." */
+.matrix-point-group:has(:hover) .matrix-point-label-bg {
+  stroke: color-mix(
+    in oklch,
+    var(--dot-color, var(--interactive-accent)) 75%,
+    transparent
+  );
+}
+
+.matrix-point-label {
+  fill: var(--text-normal);
+  font-size: var(--font-ui-smaller);
+  font-family: var(--font-interface);
+  /* Halo: keep a thin background-colored stroke under the text fill as a
+   * second line of defense. The chip is the primary readability device; the
+   * halo handles the rare case where two labels' chips overlap edge-to-edge
+   * and a few characters of text still bleed across. */
+  paint-order: stroke;
+  stroke: var(--background-primary);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  /* Labels are interactive: drag to move the point, click to open. Use
+   * bounding-box hit testing instead of the SVG default (visiblePainted)
+   * so the whole label area is grabbable — not just the glyph pixels. */
+  pointer-events: bounding-box;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: fill 0.15s ease, opacity 0.12s ease;
+}
+
+/* Hidden while a nearby large cluster's spider is expanded — keeps the spider
+ * petals readable. Restored on spider close. Toggled by JS pointerover/out
+ * handlers on the cluster group (cluster-renderer.ts). */
+.matrix-point-label--hidden-by-spider {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover lifts the label color too — driven by the parent group via :has()
+ * so hovering the dot also brightens the label, and vice versa. */
+.matrix-point-group:has(:hover) .matrix-point-label {
+  fill: var(--text-normal);
+}
+
+.matrix-point-label--dragging {
+  cursor: grabbing;
+  fill: var(--text-normal);
+}
+
+/* ---- Clusters ----
+ * A cluster wraps multiple overlapping points behind one glyph. Small
+ * clusters (≤4 members) show the cluster mark + all member labels stacked
+ * next to it. Large clusters (≥5) show only the mark at rest and fan out
+ * into a spider on hover. A petal being dragged out collapses the rest of
+ * the spider so the active dot can move freely on the canvas.
+ */
+
+.matrix-cluster-mark {
+  stroke: var(--background-primary);
+  stroke-width: 1.5;
+  cursor: pointer;
+  transition: stroke 0.15s ease, stroke-width 0.15s ease, filter 0.15s ease;
+}
+
+.matrix-cluster-count {
+  /* Per-cluster `fill` attribute is set inline by `appendClusterCount`
+   * based on the luminance of the cluster's color (see ./src/contrast.ts).
+   * This `fill: #fff` is the fallback when something fails to parse — it
+   * matches the historical default. */
+  fill: #fff;
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-bold);
+  text-anchor: middle;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Hover highlight on the cluster mark — same accent stroke we use for
+ * normal dots, so the affordance reads identically. */
+.matrix-cluster-group:hover .matrix-cluster-mark {
+  stroke: var(--interactive-accent);
+  stroke-width: 2.5;
+}
+
+/* Active cluster: the tray is currently showing this cluster's members.
+ * Stronger accent stroke + a soft outer glow so the user can locate "which
+ * cluster the tray belongs to" at a glance, even on a dense plot. */
+.matrix-cluster-group--expanded .matrix-cluster-mark {
+  stroke: var(--interactive-accent);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px var(--interactive-accent));
+}
+
+/* ---- Tooltip ----
+ * Floats over the chart as a "card": --background-primary surface with chips
+ * (--background-secondary) inside, mirroring base-board's column→card→chip
+ * surface hierarchy. */
+
+/* Tooltip is a desktop-native (hover) affordance. On touch there is no
+ * meaningful hover state — tap-to-show flashed the tooltip on press and lost
+ * it on release before users could read it. Suppress entirely on coarse-pointer
+ * for v0.1; revisit with proximity-reveal / long-press peek in v0.2. */
+@media (pointer: coarse) {
+  .matrix-tooltip { display: none !important; }
+}
+
+.matrix-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  padding: 10px 12px;
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+  /* Heavier shadow than base-board card-hover (8% on 0.08): the tooltip floats
+   * directly over the chart background — no underlying column to provide
+   * contrast — so it needs more lift to feel like an elevated surface. */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  max-width: 320px;
+  z-index: 100;
+  font-family: var(--font-interface);
+}
+
+.matrix-tooltip-title {
+  font-weight: var(--font-medium);
+  color: var(--text-normal);
+  margin-bottom: 6px;
+  line-height: 1.35;
+}
+
+.matrix-tooltip-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.matrix-tooltip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background-color: var(--background-secondary);
+  border-radius: var(--radius-s);
+  padding: 2px 6px;
+  max-width: 200px;
+  overflow: hidden;
+}
+
+.matrix-tooltip-chip-label {
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.matrix-tooltip-chip-value {
+  color: var(--text-normal);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.matrix-tooltip-chip-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ---- Inline label editor ----
+ * HTML input overlaid on an SVG <text> label when the user clicks to edit.
+ * Sized to comfortably contain the original label text plus a little buffer
+ * for typing. Theme-token styling so it blends with the rest of the view. */
+
+.matrix-inline-edit {
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  background-color: var(--background-primary);
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  padding: 2px 6px;
+  outline: none;
+  z-index: 50;
+}
+
+/* ---- Skipped notice ---- */
+
+.matrix-skipped-warning {
+  position: absolute;
+  /* Align with the x-axis title baseline. The xLabel is an SVG <text> at
+   *   y = svgHeight - 4
+   * where svgHeight = container.contentHeight = containerOuterHeight -
+   * paddingBottom (because the SVG has `height: 100%` of the content box).
+   * So the xLabel sits `paddingBottom + 4` above the container's outer
+   * bottom. The notice's `bottom` offset is measured from the same outer
+   * bottom, so we use the same value to land on the same baseline. */
+  bottom: calc(4px + max(8px, env(safe-area-inset-bottom, 0px)));
+  right: 12px;
+  /* Slightly smaller than the axis title so the (longer) notice doesn't
+   * dominate the row. font-weight matches so they read as one tier. */
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* ---- Empty state ----
+ * Overlays the SVG. The SVG still renders (axes, frame, ticks) underneath
+ * so the user gets a visual placeholder of the plot area; the message
+ * sits centered on top, picking up the container's safe-area padding.
+ * pointer-events: none so dragging / clicking through it to the chart
+ * stays possible (e.g., a near-empty plot once one note gains values). */
+
+.matrix-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  text-align: center;
+  padding: 24px;
+  max-width: 480px;
+  margin: 0 auto;
+  pointer-events: none;
+  line-height: 1.5;
+}
+
+/* ---- Detail modal (click to edit) ----
+ * Pattern from mderazon/obsidian-base-board: an orphaned WorkspaceLeaf is
+ * mounted inside the modal so the user gets the full Obsidian editor —
+ * properties panel + markdown body — without leaving the chart context.
+ */
+
+.modal.matrix-card-modal {
+  width: 800px;
+  max-width: 95vw;
+  height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.matrix-card-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Icon-only square buttons. The default ButtonComponent stretches wider than
+ * tall when only an icon is set; constrain it to a square so the action bar
+ * stays compact and the buttons read as siblings of base-board's modal. */
+.matrix-card-modal-actions button {
+  box-shadow: none;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.matrix-card-modal-actions button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.matrix-card-modal-separator {
+  margin: 16px 0;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.matrix-card-modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.matrix-card-modal .matrix-card-modal-leaf-container {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* ---- Cluster tray ----
+ * HTML overlay opened on tap of a large cluster (≥3 members). Replaces
+ * the radial spider. Slides in from the right on landscape-shaped
+ * containers, from the bottom on portrait. Driven by @container queries
+ * on .matrix-container (container-type: size). */
+
+.matrix-cluster-tray {
+  position: absolute;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-interface);
+  color: var(--text-normal);
+  z-index: 50;
+  /* Default geometry: landscape side panel. Container query (below) swaps
+   * to bottom drawer for portrait. The transform/opacity baseline matches
+   * the side variant; portrait override replaces them. */
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  border-radius: var(--radius-m) 0 0 var(--radius-m);
+  transform: translateX(100%);
+  opacity: 0;
+  transition:
+    transform 140ms ease-out,
+    opacity 140ms ease-out,
+    background-color 80ms ease-out;
+}
+
+.matrix-cluster-tray.matrix-cluster-tray--open {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Portrait container: tray slides up from the bottom as a draggable bottom
+ * sheet. Two snap points only: collapsed (default) and expanded. Heights
+ * are computed in JS from the matrix container's height (not viewport),
+ * so the tray never overflows the Bases chrome above it. The CSS var
+ * --tray-height is set by JS on open + updated during drag + snap. */
+@container matrix-container (aspect-ratio < 1) {
+  .matrix-cluster-tray {
+    top: auto;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100%;
+    --tray-height: 20vh;
+    height: var(--tray-height);
+    min-height: 130px;
+    border-radius: var(--radius-m) var(--radius-m) 0 0;
+    transform: translateY(100%);
+    transition:
+      transform 140ms ease-out,
+      opacity 140ms ease-out,
+      height 200ms ease-out,
+      background-color 80ms ease-out;
+  }
+  .matrix-cluster-tray.matrix-cluster-tray--open {
+    transform: translateY(0);
+  }
+  /* During the active resize drag: kill the height transition so the sheet
+   * tracks the finger tightly. Restored on release for the snap animation. */
+  .matrix-cluster-tray.matrix-cluster-tray--resizing {
+    transition:
+      transform 140ms ease-out,
+      opacity 140ms ease-out,
+      background-color 80ms ease-out;
+  }
+  /* iOS bottom-sheet drag grip on the header. Header doubles as the drag
+   * handle for resize. Close button still works (TS guards against starting
+   * resize when the target is the close button). */
+  .matrix-cluster-tray-header {
+    position: relative;
+    padding-top: 18px;
+    cursor: ns-resize;
+    touch-action: none;
+  }
+  .matrix-cluster-tray-header::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background-color: var(--background-modifier-border);
+    opacity: 0.7;
+  }
+}
+
+/* Translucent-during-drag: tray fades to a wisp so the user can see the
+ * plot underneath. pointer-events: none routes the in-flight drag past
+ * the tray to the SVG layer below — user can drop on plot positions the
+ * tray visually covers (critical for portrait mobile where the bottom
+ * drawer overlays the Eliminate/Delegate quadrants). */
+.matrix-cluster-tray.matrix-cluster-tray--dragging {
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.matrix-cluster-tray-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+.matrix-cluster-tray-mark {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--background-primary);
+  box-shadow: 0 0 0 1px var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+.matrix-cluster-tray-count {
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-bold);
+  color: var(--text-muted);
+}
+
+.matrix-cluster-tray-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--text-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 80ms ease, color 80ms ease;
+}
+.matrix-cluster-tray-close:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+/* Obsidian's setIcon helper injects an SVG; size it to match the modal
+ * close-button vocabulary (16px Lucide icon). */
+.matrix-cluster-tray-close svg {
+  width: 16px;
+  height: 16px;
+}
+
+.matrix-cluster-tray-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.matrix-cluster-tray-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  /* Inner right padding accommodates the device safe-area on the right
+   * (iPhone notch in landscape). The tray itself sits flush with the
+   * container edge; only the row content yields room for the notch. */
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  /* pan-y allows native vertical scroll of the rows list on touch devices.
+   * Drag-out is committed via long-press (TS) which switches to "lifted"
+   * mode (touch-action: none) once the user has held the row for ~450ms. */
+  touch-action: pan-y;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  transition:
+    background-color 80ms ease,
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+.matrix-cluster-tray-row:hover {
+  background-color: var(--background-modifier-hover);
+}
+.matrix-cluster-tray-row:active {
+  cursor: grabbing;
+}
+/* Visible "drag mode entered" state for touch — fires after long-press
+ * timer elapses. Slight lift + shadow so the user knows the gesture has
+ * committed to drag-out (vs. scroll). touch-action: none here so any
+ * subsequent finger movement is interpreted by us, not the browser. */
+.matrix-cluster-tray-row.matrix-cluster-tray-row--lifted {
+  touch-action: none;
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+  background-color: var(--background-modifier-hover);
+  z-index: 1;
+}
+
+.matrix-cluster-tray-row-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid var(--background-primary);
+  box-shadow: 0 0 0 0.5px var(--background-modifier-border);
+}
+
+.matrix-cluster-tray-row-title {
+  flex: 1;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+/* Ghost dot that follows the pointer during a tray-row drag-out. Same
+ * shape as a singleton point; pointer-events off so it doesn't intercept
+ * its own pointermove events. */
+.matrix-tray-drag-ghost {
+  pointer-events: none;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));
+  opacity: 0.92;
+}
+

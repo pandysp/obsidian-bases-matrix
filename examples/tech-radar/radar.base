@@ -1,0 +1,40 @@
+filters:
+  and:
+    - file.folder == "examples/tech-radar/items"
+    - file.ext == "md"
+formulas:
+  quadrant: if(note.x >= 0, if(note.y >= 0, "Tools", "Languages & Frameworks"), if(note.y >= 0, "Techniques", "Platforms"))
+newItemFolder: examples/tech-radar/items
+newItemTemplate: examples/tech-radar/template.md
+views:
+  - type: matrix
+    name: Tech radar
+    order:
+      - file.name
+      - title
+    xAxis: note.x
+    yAxis: note.y
+    titleProperty: note.title
+    colorBy: formula.quadrant
+    xLabel: ""
+    yLabel: ""
+    xMin: -5
+    xMax: 5
+    yMin: -5
+    yMax: 5
+    showQuadrants: true
+    quadrantLabelQ1: Tools
+    quadrantLabelQ2: Techniques
+    quadrantLabelQ3: Platforms
+    quadrantLabelQ4: Languages & Frameworks
+    showRings: true
+    ring1Label: Adopt
+    ring2Label: Trial
+    ring3Label: Assess
+    ring4Label: Hold
+    centerAxes: true
+    showFrame: false
+    showAxes: false
+    squarePlot: true
+    showLabels: true
+    labelMaxLength: 24

@@ -1,0 +1,21 @@
+filters:
+  and:
+    - file.folder == "examples/training-log/sessions"
+    - file.ext == "md"
+newItemFolder: examples/training-log/sessions
+newItemTemplate: examples/training-log/template.md
+views:
+  - type: matrix
+    name: 5K training log
+    order:
+      - file.name
+      - title
+    xAxis: note.date
+    yAxis: note.pace
+    titleProperty: note.title
+    colorBy: note.pace
+    colorScale: red-yellow-green
+    colorDirection: low-is-good
+    xLabel: Date
+    yLabel: Avg pace (min/km)
+    showQuadrants: false

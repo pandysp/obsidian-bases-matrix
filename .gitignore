@@ -1,0 +1,13 @@
+node_modules/
+main.js
+*.js.map
+
+.DS_Store
+*.swp
+*.log
+
+.idea/
+.vscode/
+
+# Hegel property-based test runner state cache
+.hegel/

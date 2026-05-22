@@ -1,0 +1,47 @@
+name: Release Obsidian plugin
+
+# Tag-triggered: pushing a git tag builds + tests + drafts a GitHub Release
+# with main.js / manifest.json / styles.css attached as the release artifacts.
+# This is the format the obsidian-releases reviewer expects.
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Create draft release
+        env:
+          # All inputs are routed through env: per GitHub Actions safety guidelines.
+          # github.ref is an immutable runner-provided value for tag pushes —
+          # not user-controlled content.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ github.ref }}
+        run: |
+          tag="${REF#refs/tags/}"
+          gh release create "$tag" \
+            --title="$tag" \
+            --draft \
+            main.js manifest.json styles.css

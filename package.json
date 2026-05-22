@@ -1,0 +1,42 @@
+{
+  "name": "obsidian-bases-matrix",
+  "version": "0.1.31",
+  "description": "2D scatter view for Obsidian Bases — plot notes on a configurable 2×2 matrix with quadrant overlay, drag-to-edit, inline-editable labels, and smart clustering of overlapping points.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "obsidian-plugin",
+    "bases",
+    "matrix",
+    "eisenhower",
+    "scatter",
+    "quadrant"
+  ],
+  "author": "Andreas Spannagel",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andreasspannagel/obsidian-bases-matrix"
+  },
+  "bugs": {
+    "url": "https://github.com/andreasspannagel/obsidian-bases-matrix/issues"
+  },
+  "homepage": "https://github.com/andreasspannagel/obsidian-bases-matrix#readme",
+  "devDependencies": {
+    "@hegeldev/hegel": "^0.2.2",
+    "@types/node": "^20.0.0",
+    "builtin-modules": "^3.3.0",
+    "esbuild": "^0.17.3",
+    "obsidian": "^1.10.0",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.4",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,105 @@
+/* Example user snippet — Linear-flavored skin for the 2×2 Matrix view.
+ *
+ * Domain-specific styling lives in user snippets (not the plugin). This file
+ * shows the theming hooks the plugin exposes, applied to give the matrix a
+ * Linear-style card aesthetic with subtitle, pill chips, and a date footer.
+ *
+ * Drop this into <your-vault>/.obsidian/snippets/ and enable it in
+ * Settings → Appearance → CSS snippets.
+ */
+
+/* ---- Tooltip: Linear-style card ----
+ * Mirror base-board card surface: lifted bg, soft border, rounded corners,
+ * subtle shadow. Pure theme-token primitives so it adapts to any theme.
+ */
+.matrix-tooltip {
+  background-color: color-mix(in srgb, var(--background-primary) 93%, white 7%);
+  border: 1px solid color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 0.92em;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.32);
+}
+
+/* File-name subtitle (TODO-01, TODO-02, ...) above the tooltip title.
+ * The plugin sets `data-file-name="<basename>"` on the tooltip root; we
+ * render it via content: attr() — purely presentational. */
+.matrix-tooltip[data-file-name]::before {
+  content: attr(data-file-name);
+  display: block;
+  font-size: 0.82em;
+  font-weight: var(--font-normal);
+  color: hsl(0, 0%, 55%);
+  letter-spacing: 0.03em;
+  margin-bottom: 6px;
+}
+
+.matrix-tooltip-title {
+  font-size: 1.08em;
+  font-weight: 500;
+  color: hsl(0, 0%, 92%);
+  letter-spacing: -0.005em;
+  line-height: 1.35;
+  margin-bottom: 12px;
+}
+
+.matrix-tooltip-chips {
+  gap: 4px 6px;
+  align-items: center;
+}
+
+/* Linear-style pill chips: dark bg, light border, small text. */
+.matrix-tooltip-chip {
+  background: hsl(0, 0%, 16%);
+  color: hsl(0, 0%, 72%);
+  font-size: 0.82em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid hsl(0, 0%, 22%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: none;
+}
+
+/* ---- Per-property chip styling via data-property-id ----
+ * The plugin sets data-property-id on each tooltip chip so themes can target
+ * specific properties for custom presentation. The same idiom matches
+ * base-board's card chips, so a single snippet can skin both views.
+ */
+
+/* file.ctime / file.mtime — flat footer chips on their own row.
+ * flex-basis 100% pushes each onto its own line. */
+.matrix-tooltip-chip[data-property-id="file.ctime"],
+.matrix-tooltip-chip[data-property-id="file.mtime"] {
+  flex-basis: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 4px;
+  color: hsl(0, 0%, 50%);
+  font-size: 0.85em;
+}
+.matrix-tooltip-chip[data-property-id="file.ctime"] {
+  order: 99;
+}
+.matrix-tooltip-chip[data-property-id="file.mtime"] {
+  order: 100;
+}
+
+/* Hide the bare property-name label and inject a friendly prefix instead. */
+.matrix-tooltip-chip[data-property-id="file.ctime"] .matrix-tooltip-chip-label,
+.matrix-tooltip-chip[data-property-id="file.mtime"] .matrix-tooltip-chip-label {
+  display: none;
+}
+.matrix-tooltip-chip[data-property-id="file.ctime"] .matrix-tooltip-chip-value::before {
+  content: "Created ";
+  color: hsl(0, 0%, 50%);
+  opacity: 0.7;
+}
+.matrix-tooltip-chip[data-property-id="file.mtime"] .matrix-tooltip-chip-value::before {
+  content: "Updated ";
+  color: hsl(0, 0%, 50%);
+  opacity: 0.7;
+}

@@ -1,0 +1,10 @@
+{
+	"id": "bases-matrix",
+	"name": "2×2 Matrix for Bases",
+	"version": "0.1.31",
+	"minAppVersion": "1.10.0",
+	"description": "A 2D scatter view for Obsidian Bases with quadrant overlay, configurable axes, drag-to-edit, inline-editable labels, and smart clustering of overlapping points. Use as an Eisenhower matrix, effort/value chart, or any 2×2 framework.",
+	"author": "Andreas Spannagel",
+	"authorUrl": "https://github.com/andreasspannagel",
+	"isDesktopOnly": false
+}

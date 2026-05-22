@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Matrix label strategies — prototype</title>
+<style>
+  :root {
+    --bg: #1e1e1e;
+    --panel: #2a2a2a;
+    --panel-2: #333;
+    --line: #444;
+    --fg: #e8e8e8;
+    --muted: #999;
+    --accent: #5aa1ff;
+    --grid: #3a3a3a;
+    --plot-bg: #232323;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start; }
+  .family { display: flex; flex-direction: column; gap: 4px; }
+  .family h4 { margin: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .family .row { display: flex; gap: 4px; flex-wrap: wrap; }
+  button.mode { background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); padding: 4px 9px; border-radius: 4px; cursor: pointer; font: inherit; font-size: 12px; }
+  button.mode:hover { background: #3d3d3d; }
+  button.mode.active { background: #1f4f8a; border-color: var(--accent); color: #fff; }
+  .meta { margin-left: auto; align-self: center; color: var(--muted); font-size: 12px; max-width: 380px; text-align: right; }
+  main { display: flex; height: calc(100vh - 84px); }
+  .plot-wrap { flex: 1; padding: 12px 18px; position: relative; min-width: 0; }
+  .plot-wrap svg { width: 100%; height: 100%; display: block; background: var(--plot-bg); border-radius: 6px; touch-action: none; }
+  .sidebar { width: 280px; background: var(--panel); border-left: 1px solid var(--line); padding: 10px 12px; overflow-y: auto; display: none; }
+  .sidebar.visible { display: block; }
+  .sidebar h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .sidebar .item { padding: 4px 6px; border-radius: 3px; cursor: pointer; display: flex; gap: 6px; align-items: center; font-size: 12px; }
+  .sidebar .item:hover, .sidebar .item.hover { background: #3a3a3a; }
+  .sidebar .swatch { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  .axis-line { stroke: var(--line); stroke-width: 1; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; stroke-dasharray: 2 4; }
+  .axis-label { fill: var(--muted); font-size: 10px; }
+  .quadrant-label { fill: var(--muted); font-size: 10px; }
+  .dot { transition: r 80ms, opacity 120ms, filter 120ms; }
+  .dot.hover { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4)); }
+  .dot.dim { opacity: 0.3; }
+  .label { font-size: 11px; fill: var(--fg); pointer-events: none; }
+  .label.halo { paint-order: stroke; stroke: var(--plot-bg); stroke-width: 3px; stroke-linejoin: round; }
+  .label.pinned { fill: #ffd966; }
+  .label.fading { animation: fade 2200ms forwards; }
+  @keyframes fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+  .lens-circle { fill: rgba(90,161,255,0.06); stroke: var(--accent); stroke-width: 1.5; cursor: grab; }
+  .lens-circle:active { cursor: grabbing; }
+  .badge { fill: #fff; font-size: 9px; font-weight: 700; pointer-events: none; }
+  .quadrant-tap { fill: transparent; cursor: pointer; }
+  .quadrant-tap:hover { fill: rgba(255,255,255,0.03); }
+
+  .desc {
+    position: absolute; bottom: 8px; left: 24px; right: 24px;
+    background: rgba(0,0,0,0.55); border: 1px solid var(--line);
+    padding: 8px 12px; border-radius: 4px; color: var(--fg);
+    font-size: 12px; pointer-events: none;
+  }
+  .desc strong { color: var(--accent); margin-right: 6px; }
+
+  @media (max-width: 720px) {
+    main { flex-direction: column; height: calc(100vh - 110px); }
+    .sidebar { width: 100%; border-left: none; border-top: 1px solid var(--line); max-height: 220px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="family">
+    <h4>Baseline</h4>
+    <div class="row">
+      <button class="mode" data-mode="all">All labels</button>
+    </div>
+  </div>
+
+  <div class="family">
+    <h4>B — Always-on, smarter</h4>
+    <div class="row">
+      <button class="mode" data-mode="halo">Halo</button>
+      <button class="mode" data-mode="truncate">Truncate</button>
+    </div>
+  </div>
+
+  <div class="family">
+    <h4>C — Label budget</h4>
+    <div class="row">
+      <button class="mode" data-mode="topk">Top-K importance</button>
+      <button class="mode" data-mode="lonely">Loneliness filter</button>
+    </div>
+  </div>
+
+  <div class="family">
+    <h4>A — Reveal on interaction</h4>
+    <div class="row">
+      <button class="mode" data-mode="spotlight">Spotlight</button>
+      <button class="mode" data-mode="pin">Tap to pin</button>
+      <button class="mode" data-mode="lens">Magnifier lens</button>
+      <button class="mode" data-mode="peek">Tap-peek (2s)</button>
+    </div>
+  </div>
+
+  <div class="family">
+    <h4>D — Out of plot</h4>
+    <div class="row">
+      <button class="mode" data-mode="numbered">Numbered + legend</button>
+      <button class="mode" data-mode="list">Side list (synced)</button>
+    </div>
+  </div>
+
+  <div class="family">
+    <h4>E — Rethink medium</h4>
+    <div class="row">
+      <button class="mode" data-mode="drill">Drill into quadrant</button>
+    </div>
+  </div>
+
+  <div class="meta" id="meta">Click a mode to compare.</div>
+</header>
+
+<main>
+  <div class="plot-wrap">
+    <svg id="plot" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="desc" id="desc"></div>
+  </div>
+  <aside class="sidebar" id="sidebar"></aside>
+</main>
+
+<script>
+"use strict";
+
+const AREAS = {
+  personal: "#9fd8ff",
+  work:     "#9be08a",
+  health:   "#f4a4c1",
+  home:     "#f7c478",
+  finance:  "#c79bf0",
+  errand:   "#ffb88a",
+};
+
+const RAW = [
+  ["Splitwise: Lisbon trip expenses with Ash & Christi", 2, 8, "finance"],
+  ["Schedule electrician for Bath", 4, 8, "home"],
+  ["Schedule client interview", 5, 8, "work"],
+  ["Safe before(trolling)", 5, 8, "work"],
+  ["BAW email", 7, 8, "work"],
+  ["Obtain Auszug Geburtenregister for marriage eligibility", 1, 7.5, "personal"],
+  ["Collect client references/testimonials", 4, 7, "work"],
+  ["Order 'Come As You Are' by Emily Nagoski", 4, 7, "personal"],
+  ["Schedule endocrinologist for T3/T4 testing", 6, 7, "health"],
+  ["Schedule diagnosis interview (Anxiety/ADHD/Depression)", 8, 7, "health"],
+  ["Help with CV overhaul", 5, 7, "work"],
+  ["Send Einkommensnachweis to insurance", 8, 7, "finance"],
+
+  ["Find dentist and schedule appointment", 2, 6, "health"],
+  ["Request Vodafone Aktivierungscode - blocked from phone invoices", 4, 6, "errand"],
+  ["Follow up with Dr. Markus Rosenfelder (LÄPPLE)", 6, 6, "health"],
+  ["Write invoices/bills", 7, 6, "finance"],
+  ["Solimi", 8, 6, "work"],
+  ["Therapy referral letter", 3, 6, "health"],
+
+  ["Plan weekend Lisbon route", 2, 5, "personal"],
+  ["Set up new monitor at desk", 5, 5, "home"],
+
+  ["Reply to landlord email", 1, 4, "home"],
+  ["Update LinkedIn headline", 2, 4, "work"],
+  ["Inspect leak under sink", 3, 4, "home"],
+  ["Eisenhower Matrix view for notes/todos/", 4, 4, "work"],
+
+  ["Get salary statements from OneFID GmbH", 3, 3, "finance"],
+  ["Backup old laptop", 1, 3, "errand"],
+  ["Clean garage shelf", 2, 3, "home"],
+
+  ["Pick up dry cleaning", 1, 2, "errand"],
+  ["Renew gym subscription", 2, 2, "personal"],
+  ["Sort book pile", 1, 2, "home"],
+  ["Clear Slack DMs", 2, 2, "work"],
+  ["Watch saved Pocket articles", 1, 2, "personal"],
+  ["Tweet draft about Bases", 2, 2, "work"],
+  ["Buy new shoelaces", 1, 2, "errand"],
+
+  ["Add Google review for Pellecahus", 1, 1, "errand"],
+  ["Empty downloads folder", 1, 1, "personal"],
+  ["Try new pasta recipe", 2, 1, "personal"],
+  ["Browse rugs at IKEA", 1, 0.5, "home"],
+];
+
+function jitter(seed) {
+  let h = seed * 9301 + 49297;
+  h = (h % 233280) / 233280;
+  return (h - 0.5) * 0.6;
+}
+const ITEMS = RAW.map(([title, u, i, area], idx) => ({
+  id: idx,
+  title, area,
+  u: Math.max(0, Math.min(10, u + jitter(idx))),
+  i: Math.max(0, Math.min(10, i + jitter(idx * 7 + 3))),
+}));
+
+const VB_W = 700, VB_H = 700;
+const PAD = { l: 56, r: 28, t: 28, b: 48 };
+const plotX = (u) => PAD.l + (u / 10) * (VB_W - PAD.l - PAD.r);
+const plotY = (i) => VB_H - PAD.b - (i / 10) * (VB_H - PAD.t - PAD.b);
+
+const svg = document.getElementById("plot");
+svg.setAttribute("viewBox", `0 0 ${VB_W} ${VB_H}`);
+
+// Descriptions split as [headline, body] — headline rendered bold via DOM.
+const DESC = {
+  all:       ["Baseline.",          "Show every label. Overlaps stack; long labels overflow. This is the problem."],
+  halo:      ["Halo.",               "White stroke under each label so collisions stay readable. Cheap. Doesn't reduce collisions — just makes them tolerable."],
+  truncate:  ["Truncate.",           "Aggressive 14-char + ellipsis. Trades meaning for fit. Numbers and short words survive; long titles get gutted."],
+  topk:      ["Top-K.",              "Show only labels for the top 8 by urgency × importance. Quiet plot, focuses on what matters most."],
+  lonely:    ["Loneliness filter.",  "Label a dot only if no neighbor sits within ~60px. Crowded regions go silent; isolated dots get full text."],
+  spotlight: ["Spotlight.",          "Hover or touch the plot — the 5 nearest dots get labels. Move to explore. Feels mobile-native."],
+  pin:       ["Tap to pin.",         "Click a dot to toggle its label. Labels persist until unpinned. User curates their own minimap."],
+  lens:      ["Magnifier lens.",     "Drag the blue circle; dots inside get enlarged and labeled. A physical metaphor — moves attention spatially."],
+  peek:      ["Tap-peek.",           "Click a dot, its label appears for ~2s then fades. Zero persistent clutter; cheap to check 'what is this?'"],
+  numbered:  ["Numbered + legend.",  "Each dot is a numbered chip. Sidebar holds the full titles. Like a journal-article figure."],
+  list:      ["Synced side list.",   "No labels in plot. Hover the plot or the list — both highlight. Tap a dot to scroll the list to it."],
+  drill:     ["Drill-into-quadrant.","Tap a quadrant background to expand it as a list. Hides the spatial dimension, embraces the categorical one."],
+};
+
+let state = {
+  mode: "all",
+  cursor: null,
+  pinned: new Set(),
+  peek: null,
+  lens: { x: 380, y: 250, r: 80 },
+  drill: null,
+  hoverId: null,
+};
+
+function clear() { while (svg.firstChild) svg.removeChild(svg.firstChild); }
+function el(tag, attrs = {}, text) {
+  const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+
+function renderAxes() {
+  if (state.mode === "drill") {
+    const mx = plotX(5), my = plotY(5);
+    const qs = [
+      { id: "schedule",  x: PAD.l, y: PAD.t, w: mx - PAD.l, h: my - PAD.t },
+      { id: "do-first",  x: mx,    y: PAD.t, w: VB_W - PAD.r - mx, h: my - PAD.t },
+      { id: "eliminate", x: PAD.l, y: my,    w: mx - PAD.l, h: VB_H - PAD.b - my },
+      { id: "delegate",  x: mx,    y: my,    w: VB_W - PAD.r - mx, h: VB_H - PAD.b - my },
+    ];
+    for (const q of qs) {
+      const r = el("rect", { x: q.x, y: q.y, width: q.w, height: q.h, class: "quadrant-tap" });
+      r.addEventListener("click", () => { state.drill = state.drill === q.id ? null : q.id; render(); });
+      svg.appendChild(r);
+    }
+  }
+
+  svg.appendChild(el("line", { x1: plotX(5), y1: PAD.t, x2: plotX(5), y2: VB_H - PAD.b, class: "grid-line" }));
+  svg.appendChild(el("line", { x1: PAD.l, y1: plotY(5), x2: VB_W - PAD.r, y2: plotY(5), class: "grid-line" }));
+
+  svg.appendChild(el("line", { x1: PAD.l, y1: VB_H - PAD.b, x2: VB_W - PAD.r, y2: VB_H - PAD.b, class: "axis-line" }));
+  svg.appendChild(el("line", { x1: PAD.l, y1: PAD.t, x2: PAD.l, y2: VB_H - PAD.b, class: "axis-line" }));
+
+  for (let v = 0; v <= 10; v += 2) {
+    svg.appendChild(el("text", { x: plotX(v), y: VB_H - PAD.b + 16, "text-anchor": "middle", class: "axis-label" }, String(v)));
+    svg.appendChild(el("text", { x: PAD.l - 10, y: plotY(v) + 4, "text-anchor": "end", class: "axis-label" }, String(v)));
+  }
+  svg.appendChild(el("text", { x: (PAD.l + VB_W - PAD.r) / 2, y: VB_H - 12, "text-anchor": "middle", class: "axis-label" }, "Urgency →"));
+  svg.appendChild(el("text", { x: 14, y: (PAD.t + VB_H - PAD.b) / 2, "text-anchor": "middle", class: "axis-label", transform: `rotate(-90 14 ${(PAD.t + VB_H - PAD.b) / 2})` }, "Importance →"));
+
+  svg.appendChild(el("text", { x: PAD.l + 6,  y: PAD.t + 14, class: "quadrant-label" }, "Schedule"));
+  svg.appendChild(el("text", { x: VB_W - PAD.r - 6, y: PAD.t + 14, "text-anchor": "end", class: "quadrant-label" }, "Do First"));
+  svg.appendChild(el("text", { x: PAD.l + 6,  y: VB_H - PAD.b - 6, class: "quadrant-label" }, "Eliminate"));
+  svg.appendChild(el("text", { x: VB_W - PAD.r - 6, y: VB_H - PAD.b - 6, "text-anchor": "end", class: "quadrant-label" }, "Delegate"));
+}
+
+function truncate(s, n) { return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…"; }
+
+function labelSet() {
+  if (state.mode === "all" || state.mode === "halo" || state.mode === "truncate") {
+    return new Set(ITEMS.map(it => it.id));
+  }
+  if (state.mode === "topk") {
+    const sorted = [...ITEMS].sort((a, b) => (b.u * b.i) - (a.u * a.i));
+    return new Set(sorted.slice(0, 8).map(it => it.id));
+  }
+  if (state.mode === "lonely") {
+    const R = 60;
+    const out = new Set();
+    for (const a of ITEMS) {
+      let lonely = true;
+      for (const b of ITEMS) {
+        if (a.id === b.id) continue;
+        const dx = plotX(a.u) - plotX(b.u);
+        const dy = plotY(a.i) - plotY(b.i);
+        if (dx * dx + dy * dy < R * R) { lonely = false; break; }
+      }
+      if (lonely) out.add(a.id);
+    }
+    return out;
+  }
+  if (state.mode === "spotlight") {
+    if (!state.cursor) return new Set();
+    const ranked = ITEMS.map(it => ({
+      id: it.id,
+      d2: Math.hypot(plotX(it.u) - state.cursor.x, plotY(it.i) - state.cursor.y),
+    })).sort((a, b) => a.d2 - b.d2);
+    return new Set(ranked.slice(0, 5).map(r => r.id));
+  }
+  if (state.mode === "pin") return new Set(state.pinned);
+  if (state.mode === "lens") {
+    const out = new Set();
+    for (const it of ITEMS) {
+      const dx = plotX(it.u) - state.lens.x;
+      const dy = plotY(it.i) - state.lens.y;
+      if (dx * dx + dy * dy < state.lens.r * state.lens.r) out.add(it.id);
+    }
+    return out;
+  }
+  if (state.mode === "peek") {
+    if (!state.peek) return new Set();
+    if (Date.now() - state.peek.ts > 2200) { state.peek = null; return new Set(); }
+    return new Set([state.peek.id]);
+  }
+  return new Set();
+}
+
+function renderDots() {
+  const labels = labelSet();
+  for (const it of ITEMS) {
+    const cx = plotX(it.u);
+    const cy = plotY(it.i);
+    let r = 7;
+    let dim = false;
+
+    if (state.mode === "lens") {
+      const dx = cx - state.lens.x, dy = cy - state.lens.y;
+      const inside = dx*dx + dy*dy < state.lens.r * state.lens.r;
+      if (inside) r = 11; else dim = true;
+    }
+    if (state.mode === "spotlight" && state.cursor) {
+      if (!labels.has(it.id)) dim = true;
+    }
+    if (state.mode === "drill" && state.drill) {
+      const inQ = (state.drill === "do-first"  && it.u >= 5 && it.i >= 5)
+               || (state.drill === "schedule"  && it.u <  5 && it.i >= 5)
+               || (state.drill === "eliminate" && it.u <  5 && it.i <  5)
+               || (state.drill === "delegate"  && it.u >= 5 && it.i <  5);
+      if (!inQ) dim = true;
+    }
+
+    const dot = el("circle", {
+      cx, cy, r,
+      fill: AREAS[it.area] || "#888",
+      "fill-opacity": 0.85,
+      stroke: "rgba(0,0,0,0.4)",
+      "stroke-width": 1,
+      class: "dot" + (dim ? " dim" : "") + (state.hoverId === it.id ? " hover" : ""),
+      "data-id": it.id,
+    });
+    dot.addEventListener("pointerenter", () => { state.hoverId = it.id; render(); });
+    dot.addEventListener("pointerleave", () => { state.hoverId = null; render(); });
+    dot.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (state.mode === "pin") {
+        if (state.pinned.has(it.id)) state.pinned.delete(it.id);
+        else state.pinned.add(it.id);
+      }
+      if (state.mode === "peek") {
+        state.peek = { id: it.id, ts: Date.now() };
+        setTimeout(render, 2300);
+      }
+      render();
+    });
+    svg.appendChild(dot);
+
+    if (state.mode === "numbered") {
+      svg.appendChild(el("text", {
+        x: cx, y: cy + 3, "text-anchor": "middle",
+        class: "badge",
+      }, String(it.id + 1)));
+    }
+
+    if (labels.has(it.id)) {
+      const useHalo = state.mode === "halo" || state.mode === "spotlight" || state.mode === "lens" || state.mode === "peek" || state.mode === "pin";
+      const text = (state.mode === "truncate") ? truncate(it.title, 14) : it.title;
+      const cls = "label" + (useHalo ? " halo" : "") + (state.mode === "pin" ? " pinned" : "") + (state.mode === "peek" ? " fading" : "");
+      svg.appendChild(el("text", {
+        x: cx + 10, y: cy + 4, class: cls,
+      }, text));
+    }
+  }
+
+  if (state.mode === "lens") {
+    const lens = el("circle", {
+      cx: state.lens.x, cy: state.lens.y, r: state.lens.r,
+      class: "lens-circle",
+    });
+    svg.appendChild(lens);
+    bindLensDrag(lens);
+  }
+
+  if (state.mode === "drill" && state.drill) {
+    const items = ITEMS.filter(it => {
+      if (state.drill === "do-first")  return it.u >= 5 && it.i >= 5;
+      if (state.drill === "schedule")  return it.u <  5 && it.i >= 5;
+      if (state.drill === "eliminate") return it.u <  5 && it.i <  5;
+      if (state.drill === "delegate")  return it.u >= 5 && it.i <  5;
+      return false;
+    }).sort((a, b) => (b.u * b.i) - (a.u * a.i));
+    const x = VB_W - PAD.r - 220;
+    let y = PAD.t + 20;
+    svg.appendChild(el("rect", { x: x - 8, y: y - 18, width: 230, height: items.length * 18 + 24, fill: "rgba(0,0,0,0.65)", stroke: "#5aa1ff", "stroke-width": 1, rx: 4 }));
+    svg.appendChild(el("text", { x, y: y - 4, fill: "#5aa1ff", "font-size": 11, "font-weight": 700 }, state.drill.toUpperCase() + ` (${items.length})`));
+    for (const it of items) {
+      svg.appendChild(el("circle", { cx: x + 4, cy: y + 5, r: 4, fill: AREAS[it.area] }));
+      svg.appendChild(el("text", { x: x + 14, y: y + 9, class: "label" }, truncate(it.title, 28)));
+      y += 18;
+    }
+  }
+}
+
+function svgPoint(evt) {
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function bindLensDrag(lens) {
+  let dragging = false, off = { x: 0, y: 0 };
+  lens.addEventListener("pointerdown", (ev) => {
+    dragging = true;
+    const p = svgPoint(ev);
+    off.x = p.x - state.lens.x;
+    off.y = p.y - state.lens.y;
+    lens.setPointerCapture(ev.pointerId);
+  });
+  lens.addEventListener("pointermove", (ev) => {
+    if (!dragging) return;
+    const p = svgPoint(ev);
+    state.lens.x = p.x - off.x;
+    state.lens.y = p.y - off.y;
+    render();
+  });
+  lens.addEventListener("pointerup", () => { dragging = false; });
+  lens.addEventListener("pointercancel", () => { dragging = false; });
+}
+
+svg.addEventListener("pointermove", (ev) => {
+  if (state.mode !== "spotlight") return;
+  state.cursor = svgPoint(ev);
+  render();
+});
+svg.addEventListener("pointerleave", () => {
+  if (state.mode === "spotlight") { state.cursor = null; render(); }
+});
+
+const sidebar = document.getElementById("sidebar");
+function renderSidebar() {
+  while (sidebar.firstChild) sidebar.removeChild(sidebar.firstChild);
+  if (state.mode === "numbered" || state.mode === "list") {
+    sidebar.classList.add("visible");
+    const heading = state.mode === "numbered" ? "Legend" : "Items";
+    const h = document.createElement("h3");
+    h.textContent = heading + " (" + ITEMS.length + ")";
+    sidebar.appendChild(h);
+    const sorted = [...ITEMS].sort((a, b) => (b.u * b.i) - (a.u * a.i));
+    for (const it of sorted) {
+      const row = document.createElement("div");
+      row.className = "item" + (state.hoverId === it.id ? " hover" : "");
+      const sw = document.createElement("span");
+      sw.className = "swatch";
+      sw.style.background = AREAS[it.area];
+      const label = document.createElement("span");
+      label.textContent = (state.mode === "numbered" ? `${it.id + 1}. ` : "") + it.title;
+      row.appendChild(sw);
+      row.appendChild(label);
+      row.addEventListener("pointerenter", () => { state.hoverId = it.id; render(); });
+      row.addEventListener("pointerleave", () => { state.hoverId = null; render(); });
+      sidebar.appendChild(row);
+    }
+  } else {
+    sidebar.classList.remove("visible");
+  }
+}
+
+const descEl = document.getElementById("desc");
+function renderDesc() {
+  while (descEl.firstChild) descEl.removeChild(descEl.firstChild);
+  const [headline, body] = DESC[state.mode] || ["", ""];
+  const s = document.createElement("strong");
+  s.textContent = headline;
+  descEl.appendChild(s);
+  descEl.appendChild(document.createTextNode(body));
+}
+
+function render() {
+  clear();
+  renderAxes();
+  renderDots();
+  renderSidebar();
+  renderDesc();
+  document.getElementById("meta").textContent = `${ITEMS.length} items · mode: ${state.mode}`;
+  for (const btn of document.querySelectorAll("button.mode")) {
+    btn.classList.toggle("active", btn.dataset.mode === state.mode);
+  }
+}
+
+document.querySelectorAll("button.mode").forEach(btn => {
+  btn.addEventListener("click", () => {
+    state.mode = btn.dataset.mode;
+    state.pinned = new Set();
+    state.peek = null;
+    state.drill = null;
+    state.cursor = null;
+    render();
+  });
+});
+
+state.mode = "all";
+render();
+</script>
+</body>
+</html>

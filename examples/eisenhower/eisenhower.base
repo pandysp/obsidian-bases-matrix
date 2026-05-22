@@ -1,0 +1,27 @@
+filters:
+  and:
+    - file.folder == "examples/eisenhower/notes"
+    - file.ext == "md"
+newItemFolder: examples/eisenhower/notes
+newItemTemplate: examples/eisenhower/template.md
+views:
+  - type: matrix
+    name: Eisenhower
+    order:
+      - file.name
+      - title
+    xAxis: note.urgency
+    yAxis: note.importance
+    titleProperty: note.title
+    colorBy: note.area
+    xLabel: Urgency
+    yLabel: Importance
+    xMin: 0
+    xMax: 10
+    yMin: 0
+    yMax: 10
+    showQuadrants: true
+    quadrantLabelQ1: Do First
+    quadrantLabelQ2: Schedule
+    quadrantLabelQ3: Eliminate
+    quadrantLabelQ4: Delegate
