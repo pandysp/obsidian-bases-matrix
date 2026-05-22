@@ -44,7 +44,7 @@ Three self-contained demos in the `examples/` folder. Drop any into a vault and 
 
 1. Install **Obsidian42 - BRAT** from the community plugins browser
 2. In BRAT settings, **Add Beta Plugin** and paste:
-   `https://github.com/andreasspannagel/obsidian-bases-matrix`
+   `https://github.com/pandysp/obsidian-bases-matrix`
 3. Enable the plugin in Settings → Community plugins
 
 BRAT will auto-update the plugin when new releases are tagged.
@@ -52,7 +52,7 @@ BRAT will auto-update the plugin when new releases are tagged.
 ### Manual install
 
 ```bash
-git clone https://github.com/andreasspannagel/obsidian-bases-matrix
+git clone https://github.com/pandysp/obsidian-bases-matrix
 cd obsidian-bases-matrix
 npm install
 npm run build

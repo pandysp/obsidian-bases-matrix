@@ -23,12 +23,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/andreasspannagel/obsidian-bases-matrix"
+    "url": "https://github.com/pandysp/obsidian-bases-matrix"
   },
   "bugs": {
-    "url": "https://github.com/andreasspannagel/obsidian-bases-matrix/issues"
+    "url": "https://github.com/pandysp/obsidian-bases-matrix/issues"
   },
-  "homepage": "https://github.com/andreasspannagel/obsidian-bases-matrix#readme",
+  "homepage": "https://github.com/pandysp/obsidian-bases-matrix#readme",
   "devDependencies": {
     "@hegeldev/hegel": "^0.2.2",
     "@types/node": "^20.0.0",

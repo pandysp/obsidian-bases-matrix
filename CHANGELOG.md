@@ -219,5 +219,5 @@ quadrant overlay, smart clustering, drag-to-edit, and full mobile support.
 - BRAT-compatible repository layout for pre-release distribution
 - Self-contained example folder (`examples/eisenhower/`) with `.base` file, 14 sample notes, and optional Linear CSS snippet
 
-[Unreleased]: https://github.com/andreasspannagel/obsidian-bases-matrix/compare/0.1.0...HEAD
-[0.1.0]: https://github.com/andreasspannagel/obsidian-bases-matrix/releases/tag/0.1.0
+[Unreleased]: https://github.com/pandysp/obsidian-bases-matrix/compare/0.1.0...HEAD
+[0.1.0]: https://github.com/pandysp/obsidian-bases-matrix/releases/tag/0.1.0
