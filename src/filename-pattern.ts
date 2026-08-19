@@ -67,6 +67,10 @@ export function resolveFilenamePattern(
     const middle = name.slice(prefix.length, name.length - suffix.length);
     if (!DIGITS_ONLY.test(middle)) continue;
     const n = parseInt(middle, 10);
+    // Digit strings beyond Number.MAX_SAFE_INTEGER round-trip through
+    // exponential notation (String(1e21) → "1e+21"), which would produce a
+    // non-numeric filename. Treat them as noise, not as a counter value.
+    if (!Number.isSafeInteger(n)) continue;
     foundAny = true;
     if (n > maxN) maxN = n;
   }
