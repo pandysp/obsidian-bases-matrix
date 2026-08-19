@@ -1,5 +1,6 @@
 import { BasesView, Notice, TFile, type QueryController } from "obsidian";
 import { asBasesConfig, asBasesData } from "./bases-internals";
+import { visibleControls, type ControlKey } from "./list-controls";
 
 export const LIST_VIEW_TYPE = "h1-list";
 
@@ -16,9 +17,6 @@ export const LIST_VIEW_TYPE = "h1-list";
  * applied to `data.data` before we see it. This is not a generic table — no
  * arbitrary columns, grouping, summaries, or formulas.
  */
-const CONTROL_ALLOWLIST = ["planned", "done", "area"] as const;
-type ControlKey = (typeof CONTROL_ALLOWLIST)[number];
-
 export class ListView extends BasesView {
   type = LIST_VIEW_TYPE;
 
@@ -39,7 +37,7 @@ export class ListView extends BasesView {
   private render(): void {
     this.root.empty();
     const entries = asBasesData(this.data)?.data ?? [];
-    const controls = this.visibleControls();
+    const controls = visibleControls(asBasesConfig(this.config).getOrder?.() ?? []);
 
     for (const entry of entries) {
       const filePath = (entry as { file?: { path?: string } }).file?.path;
@@ -52,6 +50,7 @@ export class ListView extends BasesView {
       for (const key of controls) this.renderControl(rowEl, file, key);
     }
 
+
     if (entries.length === 0) {
       this.root.createDiv({
         cls: "h1-list-empty",
@@ -60,15 +59,6 @@ export class ListView extends BasesView {
     }
   }
 
-  /** Allowlisted control keys present in the view's `order`, in order. */
-  private visibleControls(): ControlKey[] {
-    const order = asBasesConfig(this.config).getOrder?.() ?? [];
-    return order
-      .map((propId) => (propId.startsWith("note.") ? propId.slice(5) : propId))
-      .filter((key): key is ControlKey =>
-        (CONTROL_ALLOWLIST as readonly string[]).includes(key),
-      );
-  }
 
   private renderTitle(rowEl: HTMLElement, file: TFile): void {
     const firstH1 = this.app.metadataCache

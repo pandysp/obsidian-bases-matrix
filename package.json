@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/pandysp/obsidian-bases-matrix#readme",
   "devDependencies": {
-    "@hegeldev/hegel": "^0.2.2",
+    "@hegeldev/hegel": "^0.4.5",
     "@types/node": "^20.0.0",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.17.3",
