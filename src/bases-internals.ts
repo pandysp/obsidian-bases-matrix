@@ -16,15 +16,8 @@ export interface BasesConfigRuntime {
   get?: (key: string) => unknown;
   /** Write a config value. Persists to the `.base` file via Bases. */
   set?: (key: string, value: unknown) => void;
-  /** Read the ordered list of property IDs Bases knows about for this view.
-   *  Used as the search scope (`applySearchQuery(entries, getOrder())`). */
+  /** Read the ordered list of property IDs Bases knows about for this view. */
   getOrder?: () => string[];
-  /** Write the order list. Distinct from `set("order", ...)` — those write
-   *  to different fields on the config object. */
-  setOrder?: (value: string[]) => void;
-  /** Extract the canonical "note.X" / "file.X" / "formula.X" string from a
-   *  property-type config value (which is stored as an object, not a string). */
-  getAsPropertyId?: (key: string) => string | null;
   /** Human-readable display name configured for a property ID. */
   getDisplayName?: (propId: string) => string;
 }
