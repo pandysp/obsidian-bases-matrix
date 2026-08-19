@@ -81,20 +81,6 @@ export function extractString(entry: unknown, propertyId: string | null | undefi
 }
 
 /**
- * Resolve the display title for an entry.
- * Prefers the user-configured `titleProperty` from frontmatter; falls back to
- * the file basename. Mirrors the fix we wanted in obsidian-scatter and base-board.
- */
-export function resolveTitle(
-  entry: { file?: { basename?: string } },
-  titlePropertyId: string | null | undefined,
-): string {
-  const fromProperty = extractString(entry, titlePropertyId);
-  if (fromProperty) return fromProperty;
-  return entry.file?.basename ?? "Untitled";
-}
-
-/**
  * Strip `note.` prefix from a Bases property id to get the bare frontmatter key.
  * Bases stores ids as `note.priority` etc.; the actual frontmatter key is `priority`.
  */

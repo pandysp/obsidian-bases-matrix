@@ -746,3 +746,45 @@
   opacity: 0.92;
 }
 
+
+/* ================================================================
+ * H1 List — narrow list layout (title link + planned/done/area)
+ * ================================================================ */
+
+.h1-list {
+  padding: 8px 12px;
+}
+
+.h1-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.h1-list-title {
+  flex: 1;
+  cursor: pointer;
+  color: var(--text-normal);
+}
+
+.h1-list-title:hover {
+  color: var(--text-accent);
+  text-decoration: underline;
+}
+
+.h1-list-title--missing {
+  color: var(--text-error);
+  font-weight: var(--font-medium);
+}
+
+.h1-list-control input[type="text"] {
+  width: 110px;
+}
+
+.h1-list-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}

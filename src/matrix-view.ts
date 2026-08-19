@@ -12,7 +12,6 @@ import { pixelToDataPoint } from "./coords";
 import type { ClusterCandidate } from "./cluster-renderer";
 import { isValueEmpty, propertyIdToKey } from "./value-extraction";
 import { formatValueForChip } from "./value-format";
-import { appendUniqueToOrder, orderNeedsAppend } from "./search-order";
 import { computeSizeFactor, entryToRawPoint, type EntryLike } from "./entry-to-datum";
 import { detectValueType, formatValue, type ValueType } from "./value-type";
 import { asBasesConfig, asBasesData, asBasesQuery } from "./bases-internals";
@@ -76,7 +75,6 @@ export class MatrixView extends BasesView {
     return [
       { displayName: "X axis property", type: "property", key: CONFIG_KEYS.X_AXIS, placeholder: "e.g. urgency" },
       { displayName: "Y axis property", type: "property", key: CONFIG_KEYS.Y_AXIS, placeholder: "e.g. importance" },
-      { displayName: "Title property (for tooltip + click target)", type: "property", key: CONFIG_KEYS.TITLE_PROPERTY, placeholder: "Default: file name" },
       { displayName: "Color by (optional)", type: "property", key: CONFIG_KEYS.COLOR_BY, placeholder: "e.g. area" },
       { displayName: "Color scale", type: "dropdown", key: CONFIG_KEYS.COLOR_SCALE, options: {
         "": "Auto (gradient if numeric/date, else categorical)",
@@ -211,38 +209,7 @@ export class MatrixView extends BasesView {
 
   /** Called by Bases when data or config changes. */
   onDataUpdated(): void {
-    this.ensureTitleSearchable();
     this.render();
-  }
-
-  /**
-   * Bases' toolbar Search filters via `applySearchQuery(entries, view.config.getOrder())`
-   * — the search scope is the property IDs returned by `getOrder()`. Matrix
-   * doesn't naturally use columns, so the order list defaults to ["file.name"]
-   * which is the file's BASENAME, not the user-facing frontmatter title.
-   * That's why search for "Crypto" against a TODO-105 file finds nothing.
-   *
-   * Inject the configured title property (`note.title` for the user's setup)
-   * into the order list so Bases' built-in search hits the actual readable
-   * title. Important: order has its OWN setter (`setOrder`) separate from
-   * the generic `set(key, value)` — they write to different fields on the
-   * config object (`this.order` vs `this.data[key]`), and `getOrder()` only
-   * reads from `this.order`, so a generic set("order", ...) is a no-op for
-   * search purposes. (Found in obsidian app.js around byte 2186343.)
-   *
-   * Property-type config values are stored as objects, not strings, so we
-   * use `getAsPropertyId()` to extract the canonical "note.X" string.
-   */
-  private ensureTitleSearchable(): void {
-    const config = asBasesConfig(this.config);
-    const titleProp = config.getAsPropertyId?.(CONFIG_KEYS.TITLE_PROPERTY);
-    const currentOrder = config.getOrder?.() ?? [];
-    if (!orderNeedsAppend(currentOrder, titleProp)) return;
-    try {
-      config.setOrder?.(appendUniqueToOrder(currentOrder, titleProp) as string[]);
-    } catch (err) {
-      console.error("[bases-matrix] failed to inject title into order:", err);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -557,7 +524,6 @@ export class MatrixView extends BasesView {
 
     const cfg = {
       xProp: xAxis, yProp: yAxis,
-      titleProp: this.readString(CONFIG_KEYS.TITLE_PROPERTY),
       colorProp: this.readString(CONFIG_KEYS.COLOR_BY),
       sizeProp: this.readString(CONFIG_KEYS.SIZE_BY),
     };
@@ -610,11 +576,27 @@ export class MatrixView extends BasesView {
       raw.push(r);
     }
     const points: PointDatum[] = raw.map((r) => ({
-      entry: r.entry, filePath: r.filePath, label: r.label,
+      entry: r.entry, filePath: r.filePath, label: this.resolveH1Label(r.filePath),
       x: r.x, y: r.y, color: r.color,
       sizeFactor: computeSizeFactor(r.sizeRaw, sizeMin, sizeMax),
     }));
     return { points, skipped, xType, yType };
+  }
+
+  /**
+   * Resolve a point's display label from the note's first H1 heading.
+   * The H1 is the note's single human-readable title — there is no title
+   * property. A note without an H1 gets a loud placeholder instead of a
+   * silent basename fallback so the missing title is visible on the chart.
+   */
+  private resolveH1Label(filePath: string): string {
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    const basename = file instanceof TFile ? file.basename : filePath;
+    const firstH1 =
+      file instanceof TFile
+        ? this.app.metadataCache.getFileCache(file)?.headings?.find((h) => h.level === 1)
+        : null;
+    return firstH1?.heading ?? `Missing H1 — ${basename}`;
   }
 
   private updateSkippedNotice(skipped: number): void {
@@ -728,12 +710,11 @@ export class MatrixView extends BasesView {
     const skip = new Set<string>();
     const xAxis = this.readString(CONFIG_KEYS.X_AXIS);
     const yAxis = this.readString(CONFIG_KEYS.Y_AXIS);
-    const titleProp = this.readString(CONFIG_KEYS.TITLE_PROPERTY);
     const colorBy = this.readString(CONFIG_KEYS.COLOR_BY);
     const sizeBy = this.readString(CONFIG_KEYS.SIZE_BY);
-    // Title duplicates the tooltip's own title; color shows as the category
-    // dot; size has no chip-friendly representation. Axis stays IN.
-    for (const p of [titleProp, colorBy, sizeBy]) {
+    // Color shows as the category dot; size has no chip-friendly
+    // representation. Axis stays IN.
+    for (const p of [colorBy, sizeBy]) {
       if (p) skip.add(p);
     }
     // For chip labels on axis properties specifically, prefer the configured

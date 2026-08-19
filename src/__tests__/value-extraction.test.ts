@@ -1,6 +1,6 @@
 /**
  * Tests for value-extraction helpers: isValueEmpty, extractNumber, extractString,
- * resolveTitle, propertyIdToKey.
+ * propertyIdToKey.
  *
  * These wrap how Bases hands data to the plugin — NullValue sentinels,
  * `note.*` property-id prefixes, missing fields, finite-only numbers.
@@ -14,7 +14,6 @@ import {
   isValueEmpty,
   extractNumber,
   extractString,
-  resolveTitle,
   propertyIdToKey,
 } from "../value-extraction";
 
@@ -240,35 +239,3 @@ describe("propertyIdToKey", () => {
   });
 });
 
-describe("resolveTitle", () => {
-  test("uses the configured title property when set", () => {
-    const e = fakeEntry({ "note.title": "Real Task Title" }, "TODO-105");
-    expect(resolveTitle(e, "note.title")).toBe("Real Task Title");
-  });
-
-  test("falls back to file basename when title is missing", () => {
-    const e = fakeEntry({}, "TODO-105");
-    expect(resolveTitle(e, "note.title")).toBe("TODO-105");
-  });
-
-  test("falls back to file basename when title is NullValue", () => {
-    const e = fakeEntry({ "note.title": new NullValue() }, "TODO-105");
-    expect(resolveTitle(e, "note.title")).toBe("TODO-105");
-  });
-
-  test("falls back to 'Untitled' when both title and basename are missing", () => {
-    const e = { getValue: () => undefined } as unknown as { file?: { basename?: string } };
-    expect(resolveTitle(e, "note.title")).toBe("Untitled");
-  });
-
-  test("property: an entry with a non-empty title never returns the basename", () =>
-    hegel.test((tc) => {
-      const title = tc.draw(gs.sampledFrom([
-        "Pick up groceries", "Crypto research", "Q3 review", "x", "Multi word title",
-      ]));
-      const basename = tc.draw(gs.sampledFrom(["TODO-1", "TODO-105", "untitled"]));
-      const e = fakeEntry({ "note.title": title }, basename);
-      const got = resolveTitle(e, "note.title");
-      if (got !== title) throw new Error(`expected "${title}", got "${got}"`);
-    }));
-});

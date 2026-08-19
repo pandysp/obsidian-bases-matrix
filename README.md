@@ -23,7 +23,7 @@ Use it as:
 - **Smart clustering**: overlapping points fuse into one glyph with a count badge. Tap to open a tray listing all members; long-press a row to drag that member out of the cluster
 - **Drag whole clusters** as a unit by grabbing the cluster mark
 - **Snap to coordinates**: when a dragged dot lands near another point, their coordinates align exactly so the cluster forms consistently across devices
-- **Bases-native integration**: Search filters by your title property; +New creates a note pre-placed at chart midpoint; the Properties panel controls which chips appear in the per-point tooltip
+- **Bases-native integration**: +New creates a note pre-placed at chart midpoint; the Properties panel controls which chips appear in the per-point tooltip
 - **Auto-flip labels** that would overlap another point or run past the plot edge
 - **Optional color and size encoding** via additional properties
 - **Mobile-ready**: tested on iPhone Safari with touch-action coordination, finger-offset drag, and adaptive layout for narrow viewports
@@ -74,7 +74,6 @@ views:
     name: Eisenhower
     xAxis: note.urgency
     yAxis: note.importance
-    titleProperty: note.title
     colorBy: note.area
     xLabel: Urgency
     yLabel: Importance
@@ -106,7 +105,6 @@ All view options are available via the Bases sidebar (right side of any base fil
 |---|---|---|---|
 | `xAxis` | property | required | X-axis source (numeric, ISO date `YYYY-MM-DD`, or time `MM:SS` / `HH:MM:SS`) |
 | `yAxis` | property | required | Y-axis source (same parseable types as `xAxis`) |
-| `titleProperty` | property | optional | Frontmatter key for the point's title; falls back to file name |
 | `colorBy` | property | optional | Property for color encoding (categorical or numeric/gradient — see `colorScale`) |
 | `colorScale` | enum | auto | `null` auto-detects (all-numeric → gradient, else categorical); `"categorical"` forces discrete; `"red-yellow-green"`, `"viridis"`, `"red-white-blue"` force gradient |
 | `colorDirection` | enum | `high-is-good` | For diverging gradients, which end is "good". Flip to `"low-is-good"` for times, error counts, costs |
@@ -141,8 +139,7 @@ The cluster glyph is colored using the most-common color among its members.
 
 ## How it integrates with Bases
 
-- **Search, Sort, Filter, Properties, +New** in the toolbar all work the same as other Bases views
-- **Search** filters points by your configured `titleProperty` (the plugin injects the title property into the view's order list so Bases' built-in search has something meaningful to match)
+- **Sort, Filter, Properties, +New** in the toolbar all work the same as other Bases views
 - **+New** creates the file via Obsidian's standard flow but pre-sets x/y axis frontmatter to the midpoint of their configured ranges, so the new note appears on-chart from the start
 - **Property chips on hover** (desktop only): any property you toggle on in the Properties menu appears as a chip in the per-point tooltip — same chip vocabulary as base-board cards
 
@@ -181,10 +178,6 @@ Verified on iPhone 16 Pro / Obsidian Mobile. Drag, tap-to-edit, cluster tray exp
 **My points don't show up**
 - Check that the configured `xAxis` and `yAxis` are numeric, ISO date (`YYYY-MM-DD`), or time (`MM:SS` or `HH:MM:SS`) frontmatter properties. Plain text and formulas without one of those shapes won't plot
 - The chart shows a "N notes skipped" notice in the bottom-right if any notes are missing parseable values for the axes
-
-**Search doesn't find my note**
-- Search matches against the property in `titleProperty`. Make sure that property exists in your note's frontmatter
-- Adjusting `titleProperty` to `file.name` (the default) searches against the filename
 
 **Drag commits the wrong value**
 - Drag rounds to a precision based on axis range (0–1 → 2 decimals, 0–10 → 1 decimal, 0–100 → 0 decimals). If you need higher precision, expand the range

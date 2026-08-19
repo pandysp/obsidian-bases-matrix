@@ -17,7 +17,7 @@ import { entryToRawPoint, computeSizeFactor, type EntryLike } from "../entry-to-
 /** Minimal Bases-entry mock: getValue lookup + optional file. */
 function fakeEntry(values: Record<string, unknown>, filePath = "notes/Test.md"): EntryLike {
   return {
-    file: filePath ? { path: filePath, basename: filePath.split("/").pop()!.replace(/\.md$/, "") } : undefined,
+    file: filePath ? { path: filePath } : undefined,
     getValue: (id: string) => values[id],
   };
 }
@@ -30,58 +30,46 @@ class NullValue {
 describe("entryToRawPoint — concrete cases", () => {
   test("happy path: returns full raw point", () => {
     const e = fakeEntry({ "note.x": 5, "note.y": 7 }, "notes/Foo.md");
-    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null });
+    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null });
     expect(r).toEqual({
-      entry: e, filePath: "notes/Foo.md", label: "Foo",
+      entry: e, filePath: "notes/Foo.md",
       x: 5, y: 7, color: null, sizeRaw: null,
     });
   });
 
   test("missing x → null", () => {
     const e = fakeEntry({ "note.y": 7 });
-    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null })).toBeNull();
+    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null })).toBeNull();
   });
 
   test("missing y → null", () => {
     const e = fakeEntry({ "note.x": 5 });
-    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null })).toBeNull();
+    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null })).toBeNull();
   });
 
   test("NullValue x → null (uses isValueEmpty contract)", () => {
     const e = fakeEntry({ "note.x": new NullValue(), "note.y": 7 });
-    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null })).toBeNull();
+    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null })).toBeNull();
   });
 
   test("missing file path → null", () => {
     const e = fakeEntry({ "note.x": 5, "note.y": 7 }, "");
-    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null })).toBeNull();
-  });
-
-  test("titleProp set → label uses property value", () => {
-    const e = fakeEntry({ "note.x": 5, "note.y": 7, "note.title": "Real Title" }, "notes/file.md");
-    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: "note.title", colorProp: null, sizeProp: null });
-    expect(r?.label).toBe("Real Title");
-  });
-
-  test("titleProp missing-on-entry → label falls back to basename", () => {
-    const e = fakeEntry({ "note.x": 5, "note.y": 7 }, "notes/file.md");
-    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: "note.title", colorProp: null, sizeProp: null });
-    expect(r?.label).toBe("file");
+    expect(entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null })).toBeNull();
   });
 
   test("colorProp set → color extracted; missing color leaves it null", () => {
     const e = fakeEntry({ "note.x": 5, "note.y": 7, "note.area": "personal" });
-    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: "note.area", sizeProp: null });
+    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: "note.area", sizeProp: null });
     expect(r?.color).toBe("personal");
 
     const e2 = fakeEntry({ "note.x": 5, "note.y": 7 });
-    const r2 = entryToRawPoint(e2, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: "note.area", sizeProp: null });
+    const r2 = entryToRawPoint(e2, { xProp: "note.x", yProp: "note.y", colorProp: "note.area", sizeProp: null });
     expect(r2?.color).toBeNull();
   });
 
   test("sizeProp set → sizeRaw extracted as a number", () => {
     const e = fakeEntry({ "note.x": 5, "note.y": 7, "note.priority": 3 });
-    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: "note.priority" });
+    const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: "note.priority" });
     expect(r?.sizeRaw).toBe(3);
   });
 });
@@ -92,7 +80,7 @@ describe("entryToRawPoint — properties", () => {
       const x = tc.draw(gs.integers({ minValue: -100, maxValue: 100 }));
       const y = tc.draw(gs.integers({ minValue: -100, maxValue: 100 }));
       const e = fakeEntry({ "note.x": x, "note.y": y }, "notes/x.md");
-      const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", titleProp: null, colorProp: null, sizeProp: null });
+      const r = entryToRawPoint(e, { xProp: "note.x", yProp: "note.y", colorProp: null, sizeProp: null });
       if (r === null) throw new Error(`null for valid input (${x}, ${y})`);
       if (r.x !== x || r.y !== y) throw new Error(`wrong coords: (${r.x},${r.y}) vs (${x},${y})`);
     }));

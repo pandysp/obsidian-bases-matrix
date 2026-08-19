@@ -1,6 +1,6 @@
 {
   "name": "obsidian-bases-matrix",
-  "version": "0.1.31",
+  "version": "0.2.0",
   "description": "2D scatter view for Obsidian Bases — plot notes on a configurable 2×2 matrix with quadrant overlay, drag-to-edit, inline-editable labels, and smart clustering of overlapping points.",
   "main": "main.js",
   "scripts": {
