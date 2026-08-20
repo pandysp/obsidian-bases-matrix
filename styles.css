@@ -474,6 +474,10 @@
   flex-direction: column;
 }
 
+body.colorful-headings .modal.matrix-card-modal {
+  --h1-color: var(--color-red);
+}
+
 .matrix-card-modal-actions {
   display: flex;
   gap: 8px;

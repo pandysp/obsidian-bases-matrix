@@ -1,4 +1,11 @@
-import { App, ButtonComponent, Modal, TFile, WorkspaceLeaf } from "obsidian";
+import {
+  App,
+  ButtonComponent,
+  MarkdownView,
+  Modal,
+  TFile,
+  WorkspaceLeaf,
+} from "obsidian";
 
 /**
  * Inline detail modal opened when a point (dot or label) is clicked.
@@ -64,6 +71,19 @@ export class MatrixDetailModal extends Modal {
 
     bodyEl.appendChild(this.leaf.view.containerEl);
     this.leaf.view.containerEl.addClass("matrix-card-modal-leaf-container");
+
+    if (this.leaf.view instanceof MarkdownView) {
+      const firstH1 = this.app.metadataCache
+        .getFileCache(this.file)
+        ?.headings?.find((heading) => heading.level === 1);
+      if (firstH1) {
+        this.leaf.view.editor.setCursor({
+          line: firstH1.position.start.line,
+          ch: firstH1.position.start.col,
+        });
+      }
+      this.leaf.view.editor.focus();
+    }
   }
 
   onClose(): void {
