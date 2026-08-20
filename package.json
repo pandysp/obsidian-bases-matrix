@@ -1,6 +1,6 @@
 {
   "name": "obsidian-bases-matrix",
-  "version": "0.1.31",
+  "version": "0.2.0",
   "description": "2D scatter view for Obsidian Bases — plot notes on a configurable 2×2 matrix with quadrant overlay, drag-to-edit, inline-editable labels, and smart clustering of overlapping points.",
   "main": "main.js",
   "scripts": {
@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/pandysp/obsidian-bases-matrix#readme",
   "devDependencies": {
-    "@hegeldev/hegel": "^0.2.2",
+    "@hegeldev/hegel": "^0.4.5",
     "@types/node": "^20.0.0",
     "builtin-modules": "^3.3.0",
     "esbuild": "^0.17.3",

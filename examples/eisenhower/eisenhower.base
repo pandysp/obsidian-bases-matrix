@@ -12,7 +12,6 @@ views:
       - title
     xAxis: note.urgency
     yAxis: note.importance
-    titleProperty: note.title
     colorBy: note.area
     xLabel: Urgency
     yLabel: Importance

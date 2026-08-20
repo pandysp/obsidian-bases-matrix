@@ -10,18 +10,17 @@
  *
  * The matrix-view orchestration becomes: map → filter → sizeRange → re-map.
  */
-import { extractNumber, extractString, resolveTitle } from "./value-extraction";
+import { extractNumber, extractString } from "./value-extraction";
 
 /** Minimal Bases-entry shape this module needs. */
 export interface EntryLike {
-  file?: { path?: string; basename?: string };
+  file?: { path?: string };
   getValue: (id: string) => unknown;
 }
 
 export interface AxisExtractionConfig {
   xProp: string;
   yProp: string;
-  titleProp: string | null;
   colorProp: string | null;
   sizeProp: string | null;
 }
@@ -29,7 +28,6 @@ export interface AxisExtractionConfig {
 export interface RawPoint {
   entry: unknown;
   filePath: string;
-  label: string;
   x: number;
   y: number;
   color: string | null;
@@ -39,8 +37,8 @@ export interface RawPoint {
 /**
  * Convert one entry to a raw point. Returns null if the entry can't be
  * plotted: missing x, missing y, or missing file path. The caller's
- * "skipped" counter increments on each null. Title falls back to file
- * basename via resolveTitle when titleProp is unset or unavailable.
+ * "skipped" counter increments on each null. The display label is not
+ * resolved here — the view derives it from the note's first H1.
  */
 export function entryToRawPoint(
   entry: EntryLike,
@@ -54,7 +52,6 @@ export function entryToRawPoint(
   return {
     entry,
     filePath,
-    label: resolveTitle(entry, cfg.titleProp),
     x,
     y,
     color: cfg.colorProp ? extractString(entry, cfg.colorProp) : null,

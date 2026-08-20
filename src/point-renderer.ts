@@ -23,7 +23,7 @@ export interface PointDatum {
   entry: unknown;
   /** Path to the underlying file, used as a stable identifier. */
   filePath: string;
-  /** Display label (resolved from titleProperty by the view, not us). */
+  /** Display label (resolved from the note's first H1 by the view, not us). */
   label: string;
   /** Data-space x coordinate. */
   x: number;

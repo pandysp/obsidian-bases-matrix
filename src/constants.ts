@@ -3,7 +3,6 @@ export const VIEW_TYPE = "matrix";
 export const CONFIG_KEYS = {
   X_AXIS: "xAxis",
   Y_AXIS: "yAxis",
-  TITLE_PROPERTY: "titleProperty",
   COLOR_BY: "colorBy",
   COLOR_SCALE: "colorScale",
   COLOR_DIRECTION: "colorDirection",

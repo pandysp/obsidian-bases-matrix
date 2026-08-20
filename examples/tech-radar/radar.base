@@ -14,7 +14,6 @@ views:
       - title
     xAxis: note.x
     yAxis: note.y
-    titleProperty: note.title
     colorBy: formula.quadrant
     xLabel: ""
     yLabel: ""

@@ -12,7 +12,6 @@ views:
       - title
     xAxis: note.date
     yAxis: note.pace
-    titleProperty: note.title
     colorBy: note.pace
     colorScale: red-yellow-green
     colorDirection: low-is-good
